@@ -1,6 +1,7 @@
 # Python
 /__pycache__
 /myvenv
+.vscode
 
 # Data
 /datasets
