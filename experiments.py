@@ -62,15 +62,15 @@ def robustness_test():
     nb_variables = X.shape[1]
     
     # Lists to collect uncertainty and robustness for each experiment
-    uncertainty_list = []
-    robustness_list = []
+    global_uncertainties = []
+    global_robustness = []
     
-    # Number of points to generate in the neighborhood and the radius epsilon
-    n_neighbors = 30  # as per instructions
+    n_iterations = 100 # Number of iterations
+    n_neighbors = 30 # Number of neighbors to generate
     epsilon = 0.1
 
     # Repeat experiment 100 times for smoothing
-    for _ in range(100):
+    for _ in range(n_iterations):
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3)
         model = KNeighborsClassifier(n_neighbors=7, weights="distance")
         model.fit(X_train, y_train)
@@ -82,11 +82,7 @@ def robustness_test():
         shap_values = explainer.shap_values(X_test)
         # Get model predictions for test set
         prediction = model.predict(X_test)
-        print(len(prediction))
-        print(shap_values[0][:, 0])
-        # print(shap_values)
         # Extract the explanation for each test instance corresponding to its predicted class
-        # explanations = np.array([shap_values[prediction[i]][i, :] for i in range(len(prediction))])
         explanations = np.array([shap_values[i][:, prediction[i]] for i in range(len(prediction))])
         
         # List to hold the robustness value for each test instance in the current split
@@ -128,18 +124,30 @@ def robustness_test():
         probas = model.predict_proba(X_test)
         uncertainties = entropy(probas, base=2, axis=1)
         
-        # Sort test instances by increasing uncertainty
-        sorted_indices = np.argsort(uncertainties)
-        uncertainty_list.append(uncertainties[sorted_indices])
-        robustness_list.append(robust_values[sorted_indices])
+        # Append the uncertainties and robustness values to the global lists
+        global_uncertainties.append(uncertainties)
+        global_robustness.append(robust_values)
     
-    # Compute the average uncertainty and robustness across all experiments and plot the result
-    mean_uncertainties = np.mean(uncertainty_list, axis=0)
-    mean_robustness = np.mean(robustness_list, axis=0)
+    # Concatenate results from all iterations
+    global_uncertainties = np.concatenate(global_uncertainties)  
+    global_robustness = np.concatenate(global_robustness)       
+
+    # Create a combined 2D array for sorting by uncertainty (first column: uncertainty, second: robustness)
+    combined = np.vstack((global_uncertainties, global_robustness)).T
+    # Sort the combined array by increasing uncertainty (first column)
+    combined_sorted = combined[np.argsort(combined[:, 0])]
     
+    # Split the total sorted data evenly into 20 groups.
+    groups = np.array_split(combined_sorted, 20)
+    
+    # Compute the average uncertainty and robustness for each group
+    avg_uncertainties = [group[:, 0].mean() for group in groups]
+    avg_robustness = [group[:, 1].mean() for group in groups]
+    
+    # Plot the smoothed curve: Robustness as a function of Uncertainty
     plt.figure()
-    plt.plot(mean_uncertainties, mean_robustness, marker='o')
+    plt.plot(avg_uncertainties, avg_robustness, marker='o', linestyle='-')
     plt.xlabel("Uncertainty (Entropy)")
-    plt.ylabel("Robustness (Max Ratio)")
-    plt.title("Robustness vs. Uncertainty")
-    plt.savefig("figures/robustness_vs_uncertainty.png")
+    plt.ylabel("Un-Robustness (Max Ratio)")
+    plt.title("Smoothed Curve: Un-Robustness vs. Uncertainty")
+    plt.savefig("figures/robustness_vs_uncertainty_smoothed.png")
