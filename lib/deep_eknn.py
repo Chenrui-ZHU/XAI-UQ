@@ -255,12 +255,12 @@ class EKNN(BaseEstimator, ClassifierMixin):
                     pign_prob[k][i] = math.log2(pign_prob[k][i])
         aleatoric = np.sum(-(result * pign_prob), axis=1)
 
-        # Compute ambiguity
-        ambiguity = np.sum(-(amb), axis=1)
+        # # Compute ambiguity
+        # ambiguity = np.sum(-(amb), axis=1)
         
-        # Compute Nguyen's uncertainty
-        log_result = np.where(result > 0, np.log2(result), 0)
-        nguyen = np.sum(- (result * log_result), axis=1)
+        # # Compute Nguyen's uncertainty
+        # log_result = np.where(result > 0, np.log2(result), 0)
+        # nguyen = np.sum(- (result * log_result), axis=1)
 
         # Return uncertainties for input data
         return aleatoric, epistemic
