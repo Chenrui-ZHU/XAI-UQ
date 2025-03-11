@@ -123,10 +123,10 @@ def robustness_test(uncertainty):
     X, y = load_breast_cancer(return_X_y=True)
     X = preprocessing.StandardScaler().fit_transform(X)
     
-    n_iterations = 1    # Number of iterations (increase for final experiments)
+    n_iterations = 5    # Number of iterations (increase for final experiments)
     n_neighbors = 30     # Number of neighbors to generate per test instance
     epsilon = sqrt(pow(0.1,2) * X.shape[1])        # Radius for generating neighbors
-    
+     
     # Run iterations in parallel using all available CPU cores
     start_time = time.time()
     results = Parallel(n_jobs=-1)(
