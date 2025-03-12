@@ -10,6 +10,7 @@ import uncertainties as unc
 import time
 from joblib import Parallel, delayed
 from math import sqrt
+import data as dt
 
 def training_test():
     X, y = load_iris(return_X_y=True)
@@ -118,12 +119,10 @@ def process_iteration(X, y, n_neighbors, epsilon, uncertainty):
         uncertainties = al
     return uncertainties, unrobust_values
 
-def robustness_test(uncertainty):
-    # Load and standardize the wine dataset
-    X, y = load_breast_cancer(return_X_y=True)
-    X = preprocessing.StandardScaler().fit_transform(X)
+def robustness_test(uncertainty, dataset):
+    X, y = dt.load_data(dataset)
     
-    n_iterations = 5    # Number of iterations (increase for final experiments)
+    n_iterations = 1    # Number of iterations (increase for final experiments)
     n_neighbors = 30     # Number of neighbors to generate per test instance
     epsilon = sqrt(pow(0.1,2) * X.shape[1])        # Radius for generating neighbors
      
@@ -139,19 +138,23 @@ def robustness_test(uncertainty):
     # Unpack results: each element in results is a tuple (uncertainties, unrobust_values)
     global_uncertainties = np.concatenate([res[0] for res in results])
     global_unrobustness = np.concatenate([res[1] for res in results])
+
+    # stat, p_val = spearmanr(global_unrobustness, global_uncertainties)
+    # print(stat, p_val)
     
     # Combine and sort by uncertainty
     combined = np.vstack((global_uncertainties, global_unrobustness)).T
     combined_sorted = combined[np.argsort(combined[:, 0])]
-    # Divide sorted data into 20 groups for smoothing
-    groups = np.array_split(combined_sorted, 20)
+    # # Divide sorted data into 20 groups for smoothing
+    # groups = np.array_split(combined_sorted, 20)
     
-    avg_uncertainties = [group[:, 0].mean() for group in groups]
-    avg_unrobustness = [group[:, 1].mean() for group in groups]
+    # avg_uncertainties = [group[:, 0].mean() for group in groups]
+    # avg_unrobustness = [group[:, 1].mean() for group in groups]
     
     plt.figure()
-    plt.plot(avg_uncertainties, avg_unrobustness, marker='o', linestyle='-')
-    plt.xlabel(f"Uncertainty ({uncertainty})")
-    plt.ylabel("Un-Robustness (Max Ratio)")
-    plt.title(f"Smoothed Curve: Un-Robustness vs. Uncertainty ({n_iterations} iterations)")
-    plt.savefig(f"figures/robustness_vs_uncertainty_breast_cancer_{uncertainty}.png")
+    # plt.scatter(avg_uncertainties, avg_unrobustness, marker='o', linestyle='-')
+    plt.scatter(combined_sorted[:, 0], combined_sorted[:, 1], alpha=0.5, c='green')
+    plt.xlabel(f"Aleatoric Uncertainty ({uncertainty})")
+    plt.ylabel("Dissimilarity")
+    # plt.title(f"Curve: Un-Robustness vs. Uncertainty ({n_iterations} iterations)")
+    plt.savefig(f"figures/dissimilarity_vs_uncertainty_{dataset.lower()}_{uncertainty}.png")
