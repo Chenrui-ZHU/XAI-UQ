@@ -4,9 +4,21 @@ import numpy as np
 
 if __name__ == "__main__":
     # exp.training_test()
-    # exp.robustness_test("density", "BREAST_CANCER")
-    X, y = dt.load_data("HEART")
-    print("X.shape: ", X.shape)
-    print(np.max(X, axis=0))
-    print(np.min(X, axis=0))
+    dateset_names = [
+        # "BREAST_CANCER",
+        "HEART",
+        "IRIS",
+        # "SONAR",
+        "LIVER",
+        "WINE",
+        ]
+    uncertainties = [
+        # "entropy",
+        "eknn",
+        # "density",
+        # "centroids",
+    ]
+    for dataset_name in dateset_names:
+        for uncertainty in uncertainties:
+            exp.robustness_test(uncertainty, dataset_name)
     print("Done!")

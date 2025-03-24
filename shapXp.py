@@ -11,6 +11,7 @@ import time
 from joblib import Parallel, delayed
 from math import sqrt
 import data as dt
+from scipy.stats import pearsonr
 
 def training_test():
     X, y = load_iris(return_X_y=True)
@@ -68,7 +69,7 @@ def process_iteration(X, y, n_neighbors, epsilon, uncertainty):
     model.fit(X_train, y_train)
 
     # Create a SHAP KernelExplainer with a sample of 20 training points
-    explainer = shap.KernelExplainer(model.predict_proba, shap.sample(X_train, 20))
+    explainer = shap.KernelExplainer(model.predict_proba, shap.kmeans(X_train, int(sqrt(X_train.shape[0]))*2))
 
     # Compute SHAP values for the test set and get explanations for each predicted class
     shap_values = explainer.shap_values(X_test)
@@ -110,22 +111,24 @@ def process_iteration(X, y, n_neighbors, epsilon, uncertainty):
         uncertainties = entropy(probas, base=2, axis=1)
     if uncertainty == "density":
         al, ep = unc.density_uncertainties(X_train, y_train, X_test)
-        uncertainties = al
+        uncertainties = al + ep
     if uncertainty == "eknn":
         al, ep = unc.eknn_uncertainties(X_train, y_train, X_test)
         uncertainties = al
     if uncertainty == "centroids":
         al, ep = unc.centroids_uncertainties(X_train, y_train, X_test)
-        uncertainties = al
+        uncertainties = al + ep
     return uncertainties, unrobust_values
 
 def robustness_test(uncertainty, dataset):
     X, y = dt.load_data(dataset)
     
-    n_iterations = 1    # Number of iterations (increase for final experiments)
+    n_iterations = 10    # Number of iterations (increase for final experiments)
     n_neighbors = 30     # Number of neighbors to generate per test instance
     epsilon = sqrt(pow(0.1,2) * X.shape[1])        # Radius for generating neighbors
-     
+    
+    print(f"sample size: {sqrt(X.shape[0]*0.7)*10}")
+
     # Run iterations in parallel using all available CPU cores
     start_time = time.time()
     results = Parallel(n_jobs=-1)(
@@ -139,22 +142,32 @@ def robustness_test(uncertainty, dataset):
     global_uncertainties = np.concatenate([res[0] for res in results])
     global_unrobustness = np.concatenate([res[1] for res in results])
 
+    avg_corr_coef = 0
+    avg_p_value = 0
+    for result in results:
+        corr_coef, p_value = pearsonr(result[0], result[1])
+        avg_corr_coef += corr_coef
+        avg_p_value += p_value
+    avg_corr_coef /= n_iterations
+    avg_p_value /= n_iterations
+    print(f"Average correlation coefficient ({dataset}_{uncertainty}): {avg_corr_coef}")
+    print(f"Average p-value ({dataset}_{uncertainty}): {avg_p_value}")
     # stat, p_val = spearmanr(global_unrobustness, global_uncertainties)
     # print(stat, p_val)
     
-    # Combine and sort by uncertainty
-    combined = np.vstack((global_uncertainties, global_unrobustness)).T
-    combined_sorted = combined[np.argsort(combined[:, 0])]
-    # # Divide sorted data into 20 groups for smoothing
-    # groups = np.array_split(combined_sorted, 20)
+    # # Combine and sort by uncertainty
+    # combined = np.vstack((global_uncertainties, global_unrobustness)).T
+    # combined_sorted = combined[np.argsort(combined[:, 0])]
+    # # # Divide sorted data into 20 groups for smoothing
+    # # groups = np.array_split(combined_sorted, 20)
     
-    # avg_uncertainties = [group[:, 0].mean() for group in groups]
-    # avg_unrobustness = [group[:, 1].mean() for group in groups]
+    # # avg_uncertainties = [group[:, 0].mean() for group in groups]
+    # # avg_unrobustness = [group[:, 1].mean() for group in groups]
     
-    plt.figure()
-    # plt.scatter(avg_uncertainties, avg_unrobustness, marker='o', linestyle='-')
-    plt.scatter(combined_sorted[:, 0], combined_sorted[:, 1], alpha=0.5, c='green')
-    plt.xlabel(f"Aleatoric Uncertainty ({uncertainty})")
-    plt.ylabel("Dissimilarity")
-    # plt.title(f"Curve: Un-Robustness vs. Uncertainty ({n_iterations} iterations)")
-    plt.savefig(f"figures/dissimilarity_vs_uncertainty_{dataset.lower()}_{uncertainty}.png")
+    # plt.figure()
+    # # plt.scatter(avg_uncertainties, avg_unrobustness, marker='o', linestyle='-')
+    # plt.scatter(combined_sorted[:, 0], combined_sorted[:, 1], alpha=0.5, c='green')
+    # plt.xlabel(f"Aleatoric Uncertainty ({uncertainty})")
+    # plt.ylabel("Dissimilarity")
+    # # plt.title(f"Curve: Un-Robustness vs. Uncertainty ({n_iterations} iterations)")
+    # plt.savefig(f"figures/AL+EP/dissimilarity_vs_uncertainty_{dataset.lower()}_{uncertainty}.png")
