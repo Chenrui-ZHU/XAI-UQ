@@ -111,13 +111,13 @@ def process_iteration(X, y, n_neighbors, epsilon, uncertainty):
         uncertainties = entropy(probas, base=2, axis=1)
     if uncertainty == "density":
         al, ep = unc.density_uncertainties(X_train, y_train, X_test)
-        uncertainties = al + ep
+        uncertainties = al
     if uncertainty == "eknn":
         al, ep = unc.eknn_uncertainties(X_train, y_train, X_test)
         uncertainties = al + ep
     if uncertainty == "centroids":
         al, ep = unc.centroids_uncertainties(X_train, y_train, X_test)
-        uncertainties = al + ep
+        uncertainties = al
     return uncertainties, unrobust_values
 
 def robustness_test(uncertainty, dataset):
@@ -141,16 +141,19 @@ def robustness_test(uncertainty, dataset):
     global_uncertainties = np.concatenate([res[0] for res in results])
     global_unrobustness = np.concatenate([res[1] for res in results])
 
-    avg_corr_coef = 0
-    avg_p_value = 0
+    avg_corr_coef = []
+    avg_p_value = []
     for result in results:
         corr_coef, p_value = pearsonr(result[0], result[1])
-        avg_corr_coef += corr_coef
-        avg_p_value += p_value
-    avg_corr_coef /= n_iterations
-    avg_p_value /= n_iterations
-    print(f"Average correlation coefficient ({dataset}_{uncertainty}): {avg_corr_coef}")
-    print(f"Average p-value ({dataset}_{uncertainty}): {avg_p_value}")
+        avg_corr_coef.append(corr_coef)
+        avg_p_value.append(p_value)
+    corr_coef = np.mean(avg_corr_coef)
+    p_value = np.mean(avg_p_value)
+    print(f"Average correlation coefficient ({dataset}_{uncertainty}): {corr_coef}")
+    print(f"Average p-value ({dataset}_{uncertainty}): {p_value}")
+
+    corr = np.vstack((avg_corr_coef, avg_p_value)).T
+    np.save(f"output/correlation_{dataset.lower()}_{uncertainty}.npy", corr)
     
     # Combine and sort by uncertainty
     combined = np.vstack((global_uncertainties, global_unrobustness)).T
