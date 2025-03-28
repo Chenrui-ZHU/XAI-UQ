@@ -153,7 +153,7 @@ def robustness_test(uncertainty, dataset):
     print(f"Average p-value ({dataset}_{uncertainty}): {p_value}")
 
     corr = np.vstack((avg_corr_coef, avg_p_value)).T
-    np.save(f"output/correlation_{dataset.lower()}_{uncertainty}.npy", corr)
+    np.save(f"output/centroids_al/correlation_{dataset.lower()}_{uncertainty}.npy", corr)
     
     # Combine and sort by uncertainty
     combined = np.vstack((global_uncertainties, global_unrobustness)).T
@@ -164,7 +164,7 @@ def robustness_test(uncertainty, dataset):
     # avg_uncertainties = [group[:, 0].mean() for group in groups]
     # avg_unrobustness = [group[:, 1].mean() for group in groups]
     
-    np.save(f"output/data_{dataset.lower()}_{uncertainty}.npy", combined_sorted)
+    np.save(f"output/centroids_al/data_{dataset.lower()}_{uncertainty}.npy", combined_sorted)
     plt.figure()
     plt.scatter(combined_sorted[:, 0], combined_sorted[:, 1], alpha=0.5, c='green')
     plt.xlabel(f"Aleatoric + Epistiemic Uncertainty ({uncertainty})")

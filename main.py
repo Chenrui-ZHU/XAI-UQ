@@ -11,23 +11,23 @@ if __name__ == "__main__":
         # "GLASS",
         # "IONOSPHERE",
         # "BREAST_CANCER",
-        "HEART",
+        # "HEART",
         # "IRIS",
         "SONAR",
-        "LIVER",
+        # "LIVER",
         # "WINE",
         ]
     uncertainties = [
         # "entropy",
         # "eknn",
-        "density",
-        # "centroids",
+        # "density",
+        "centroids",
     ]
     for dataset_name in dateset_names:
         for uncertainty in uncertainties:
             exp.robustness_test(uncertainty, dataset_name)
     print("Done!")
-
+ 
     # data = np.load("output/data_breast_cancer_eknn.npy", allow_pickle=True)
     # print(data.shape)
     # X, y = dt.load_data("BREAST_CANCER")
