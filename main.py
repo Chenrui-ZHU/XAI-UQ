@@ -7,25 +7,36 @@ from scipy.stats import pearsonr
 if __name__ == "__main__":
     # exp.training_test()
     dateset_names = [
+        "BREAST_CANCER",
         # "ECOLI",
-        # "GLASS",
+        "GLASS",
+        "HEART",
         # "IONOSPHERE",
-        # "BREAST_CANCER",
-        # "HEART",
         # "IRIS",
-        "SONAR",
         # "LIVER",
+        # "PARKINSON",
+        # "SONAR",
         # "WINE",
         ]
     uncertainties = [
         # "entropy",
-        # "eknn",
+        "eknn",
         # "density",
-        "centroids",
+        # "centroids",
     ]
     for dataset_name in dateset_names:
         for uncertainty in uncertainties:
             exp.robustness_test(uncertainty, dataset_name)
+
+        # data = np.load(f"output/eknn_al/data_{dataset_name.lower()}_eknn.npy", allow_pickle=True)
+        # print(data.shape)
+        # size = int(data.shape[0] / 5)
+        # plt.figure()
+        # plt.scatter(data[:size, 0], data[:size, 1], alpha=0.5, c='green')
+        # plt.xlabel(f"Aleatoric Uncertainty (eknn)")
+        # plt.ylabel("Dissimilarity")
+        # plt.title(f"Curve: Un-Robustness vs. Uncertainty ({5} iterations)")
+        # plt.savefig(f"figures/AL/eknn/dissimilarity_vs_uncertainty_{dataset_name.lower()}_eknn.png")
     print("Done!")
  
     # data = np.load("output/data_breast_cancer_eknn.npy", allow_pickle=True)

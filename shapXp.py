@@ -138,36 +138,46 @@ def robustness_test(uncertainty, dataset):
     end_time = time.time()
     print(f"Total parallel execution time: {end_time - start_time:.2f} seconds.")
 
-    global_uncertainties = np.concatenate([res[0] for res in results])
-    global_unrobustness = np.concatenate([res[1] for res in results])
-
-    avg_corr_coef = []
-    avg_p_value = []
+    corr_coef = []
+    p_value = []
     for result in results:
-        corr_coef, p_value = pearsonr(result[0], result[1])
-        avg_corr_coef.append(corr_coef)
-        avg_p_value.append(p_value)
-    corr_coef = np.mean(avg_corr_coef)
-    p_value = np.mean(avg_p_value)
-    print(f"Average correlation coefficient ({dataset}_{uncertainty}): {corr_coef}")
-    print(f"Average p-value ({dataset}_{uncertainty}): {p_value}")
+        corr_coef_temp, p_value_temp = pearsonr(result[0], result[1])
+        corr_coef.append(corr_coef_temp)
+        p_value.append(p_value_temp)
+    avg_corr_coef = np.mean(corr_coef)
+    avg_p_value = np.mean(p_value)
+    print(f"Average correlation coefficient ({dataset}_{uncertainty}): {avg_corr_coef}")
+    print(f"Average p-value ({dataset}_{uncertainty}): {avg_p_value}")
 
-    corr = np.vstack((avg_corr_coef, avg_p_value)).T
-    np.save(f"output/centroids_al/correlation_{dataset.lower()}_{uncertainty}.npy", corr)
+    corr = np.vstack((corr_coef, p_value)).T
+    np.save(f"output/eknn_al+ep/correlation_{dataset.lower()}_{uncertainty}.npy", corr)
     
     # Combine and sort by uncertainty
-    combined = np.vstack((global_uncertainties, global_unrobustness)).T
-    combined_sorted = combined[np.argsort(combined[:, 0])]
+    all_results = []
+    index = 1
+    for res in results:
+        temp = np.vstack((res[0], res[1])).T
+        res_sorted = temp[np.argsort(temp[:, 0])]
+        all_results.append(res_sorted)
+        plt.figure()
+        plt.scatter(res_sorted[:, 0], res_sorted[:, 1], alpha=0.5, c='green')
+        plt.xlabel(f"Aleatoric + Epistiemic Uncertainty ({uncertainty})")
+        plt.ylabel("Un-Robustness")
+        plt.title(f"Curve: Un-Robustness vs. Uncertainty ({n_iterations} iterations)")
+        plt.savefig(f"figures/AL+EP/{uncertainty}/unrobustness_vs_uncertainty_{dataset.lower()}_{uncertainty}_{index}.png")
+        plt.close()
+        index +=1
+    all_results = np.array(all_results)
+    np.save(f"output/eknn_al+ep/data_{dataset.lower()}_{uncertainty}.npy", all_results)
+
+    # global_uncertainties = np.concatenate([res[0] for res in results])
+    # global_unrobustness = np.concatenate([res[1] for res in results])
+    # combined = np.vstack((global_uncertainties, global_unrobustness)).T
+    # combined_sorted = combined[np.argsort(combined[:, 0])]
     # # Divide sorted data into 20 groups for smoothing
     # groups = np.array_split(combined_sorted, 20)
     
     # avg_uncertainties = [group[:, 0].mean() for group in groups]
     # avg_unrobustness = [group[:, 1].mean() for group in groups]
     
-    np.save(f"output/centroids_al/data_{dataset.lower()}_{uncertainty}.npy", combined_sorted)
-    plt.figure()
-    plt.scatter(combined_sorted[:, 0], combined_sorted[:, 1], alpha=0.5, c='green')
-    plt.xlabel(f"Aleatoric + Epistiemic Uncertainty ({uncertainty})")
-    plt.ylabel("Dissimilarity")
-    # plt.title(f"Curve: Un-Robustness vs. Uncertainty ({n_iterations} iterations)")
-    plt.savefig(f"figures/AL+EP/dissimilarity_vs_uncertainty_{dataset.lower()}_{uncertainty}.png")
+

@@ -6,7 +6,7 @@ from lib.Uncertainty_ent import model_uncertainty
 from sklearn.neighbors import KNeighborsClassifier
 from scipy.optimize import minimize_scalar
 
-def centroids_uncertainties(X, y, X_test, length_scale=1):
+def centroids_uncertainties(X, y, X_test, length_scale=0.1):
     centroids = get_centroids(X, y)
     size = len(centroids)
 
