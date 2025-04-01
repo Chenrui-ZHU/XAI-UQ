@@ -111,7 +111,7 @@ def process_iteration(X, y, n_neighbors, epsilon, uncertainty):
         uncertainties = entropy(probas, base=2, axis=1)
     if uncertainty == "density":
         al, ep = unc.density_uncertainties(X_train, y_train, X_test)
-        uncertainties = al
+        uncertainties = al + ep
     if uncertainty == "eknn":
         al, ep = unc.eknn_uncertainties(X_train, y_train, X_test)
         uncertainties = al + ep
@@ -150,7 +150,7 @@ def robustness_test(uncertainty, dataset):
     print(f"Average p-value ({dataset}_{uncertainty}): {avg_p_value}")
 
     corr = np.vstack((corr_coef, p_value)).T
-    np.save(f"output/eknn_al+ep/correlation_{dataset.lower()}_{uncertainty}.npy", corr)
+    np.save(f"output/density_al+ep/correlation_{dataset.lower()}_{uncertainty}.npy", corr)
     
     # Combine and sort by uncertainty
     all_results = []
@@ -161,14 +161,14 @@ def robustness_test(uncertainty, dataset):
         all_results.append(res_sorted)
         plt.figure()
         plt.scatter(res_sorted[:, 0], res_sorted[:, 1], alpha=0.5, c='green')
-        plt.xlabel(f"Aleatoric + Epistiemic Uncertainty ({uncertainty})")
+        plt.xlabel(f"Total Uncertainty ({uncertainty})")
         plt.ylabel("Un-Robustness")
         plt.title(f"Curve: Un-Robustness vs. Uncertainty ({n_iterations} iterations)")
         plt.savefig(f"figures/AL+EP/{uncertainty}/unrobustness_vs_uncertainty_{dataset.lower()}_{uncertainty}_{index}.png")
         plt.close()
         index +=1
     all_results = np.array(all_results)
-    np.save(f"output/eknn_al+ep/data_{dataset.lower()}_{uncertainty}.npy", all_results)
+    np.save(f"output/density_al+ep/data_{dataset.lower()}_{uncertainty}.npy", all_results)
 
     # global_uncertainties = np.concatenate([res[0] for res in results])
     # global_unrobustness = np.concatenate([res[1] for res in results])

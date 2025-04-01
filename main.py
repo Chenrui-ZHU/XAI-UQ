@@ -9,19 +9,19 @@ if __name__ == "__main__":
     dateset_names = [
         "BREAST_CANCER",
         # "ECOLI",
-        "GLASS",
+        # "GLASS",
         "HEART",
-        # "IONOSPHERE",
+        "IONOSPHERE",
         # "IRIS",
-        # "LIVER",
-        # "PARKINSON",
-        # "SONAR",
+        "LIVER",
+        "PARKINSON",
+        "SONAR",
         # "WINE",
         ]
     uncertainties = [
         # "entropy",
-        "eknn",
-        # "density",
+        # "eknn",
+        "density",
         # "centroids",
     ]
     for dataset_name in dateset_names:
