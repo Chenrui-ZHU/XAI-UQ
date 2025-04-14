@@ -1,4 +1,5 @@
-import shapXp as exp
+import shapXp as shap_exp
+import cfXp as cf_exp
 import data as dt
 import numpy as np
 import matplotlib.pyplot as plt
@@ -7,60 +8,38 @@ from scipy.stats import pearsonr
 if __name__ == "__main__":
     # exp.training_test()
     dateset_names = [
-        "BREAST_CANCER",
+        # "BREAST_CANCER",
         # "ECOLI",
         # "GLASS",
-        "HEART",
-        "IONOSPHERE",
+        # "HEART",
+        # "IONOSPHERE",
         # "IRIS",
-        "LIVER",
+        # "LIVER",
         "PARKINSON",
-        "SONAR",
+        # "SONAR",
         # "WINE",
         ]
     uncertainties = [
         # "entropy",
         # "eknn",
-        "density",
-        # "centroids",
+        # "density",
+        "centroids",
     ]
     for dataset_name in dateset_names:
         for uncertainty in uncertainties:
-            exp.robustness_test(uncertainty, dataset_name)
+            shap_exp.robustness_test(uncertainty, dataset_name)
+            # cf_exp.uncertainty_test(uncertainty, dataset_name)
 
-        # data = np.load(f"output/eknn_al/data_{dataset_name.lower()}_eknn.npy", allow_pickle=True)
-        # print(data.shape)
-        # size = int(data.shape[0] / 5)
-        # plt.figure()
-        # plt.scatter(data[:size, 0], data[:size, 1], alpha=0.5, c='green')
-        # plt.xlabel(f"Aleatoric Uncertainty (eknn)")
-        # plt.ylabel("Dissimilarity")
-        # plt.title(f"Curve: Un-Robustness vs. Uncertainty ({5} iterations)")
-        # plt.savefig(f"figures/AL/eknn/dissimilarity_vs_uncertainty_{dataset_name.lower()}_eknn.png")
+            # data = np.load(f"output/eknn_al+ep/data_{dataset_name.lower()}_eknn.npy", allow_pickle=True)
+            # for i in range(5):
+            #     subset = data[i:i + 1].reshape(-1, 2)
+            #     plt.figure()
+            #     plt.scatter(subset[:, 0], subset[:, 1], alpha=0.5, c='green')
+            #     plt.xlabel("Total Uncertainty", fontsize=18)
+            #     plt.ylabel("Un-Robustness", fontsize=18)
+            #     plt.xticks([])
+            #     plt.yticks([])
+            #     plt.tight_layout()
+            #     plt.savefig(f"figures/AL+EP/{uncertainty}/unrobustness_vs_uncertainty_{dataset_name.lower()}_{uncertainty}_{i+1}.png")
+            #     plt.close()
     print("Done!")
- 
-    # data = np.load("output/data_breast_cancer_eknn.npy", allow_pickle=True)
-    # print(data.shape)
-    # X, y = dt.load_data("BREAST_CANCER")
-    # print(X.shape)
-    # plt.figure()
-    # plt.scatter(data[:171, 0], data[:171, 1], alpha=0.5, c='green')
-    # plt.xlabel(f"Aleatoric Uncertainty (eknn)")
-    # plt.ylabel("Dissimilarity")
-    # plt.title(f"Curve: Un-Robustness vs. Uncertainty ({5} iterations)")
-    # plt.savefig(f"figures/AL+EP/dissimilarity_vs_uncertainty_breast_cancer_eknn.png")
-
-    # correlations = []
-    # p_values = []
-    # for i in range(5):
-    #     start_idx = i * 171
-    #     end_idx = (i + 1) * 171
-    #     corr, p_value = pearsonr(data[start_idx:end_idx, 0], data[start_idx:end_idx, 1])
-    #     correlations.append(corr)
-    #     p_values.append(p_value)
-
-    # # Compute the mean Pearson correlation
-    # mean_correlation = np.mean(correlations)
-    # mean_p_value = np.mean(p_values)
-    # print(f"Mean Pearson Correlation over 5 iterations: {mean_correlation}")    
-    # print(f"Mean p-value over 5 iterations: {mean_p_value}")

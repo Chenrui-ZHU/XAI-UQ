@@ -12,6 +12,9 @@ from joblib import Parallel, delayed
 from math import sqrt
 import data as dt
 from scipy.stats import pearsonr
+import multiprocessing as mp
+
+# mp.set_start_method("fork", force=True)
 
 def training_test():
     X, y = load_iris(return_X_y=True)
@@ -107,8 +110,8 @@ def process_iteration(X, y, n_neighbors, epsilon, uncertainty):
     
     # Compute uncertainty
     if uncertainty == "entropy":
-        probas = model.predict_proba(X_test)
-        uncertainties = entropy(probas, base=2, axis=1)
+        al, ep = unc.entropy_uncertainties(X_train, y_train, X_test)
+        uncertainties = al + ep
     if uncertainty == "density":
         al, ep = unc.density_uncertainties(X_train, y_train, X_test)
         uncertainties = al + ep
@@ -117,7 +120,7 @@ def process_iteration(X, y, n_neighbors, epsilon, uncertainty):
         uncertainties = al + ep
     if uncertainty == "centroids":
         al, ep = unc.centroids_uncertainties(X_train, y_train, X_test)
-        uncertainties = al
+        uncertainties = al + ep
     return uncertainties, unrobust_values
 
 def robustness_test(uncertainty, dataset):
@@ -134,7 +137,11 @@ def robustness_test(uncertainty, dataset):
     results = Parallel(n_jobs=-1)(
         delayed(process_iteration)(X, y, n_neighbors, epsilon, uncertainty)
         for _ in range(n_iterations)
-    ) 
+    )
+    # results = []
+    # for _ in range(n_iterations):
+    #     result = process_iteration(X, y, n_neighbors, epsilon, uncertainty)
+    #     results.append(result)
     end_time = time.time()
     print(f"Total parallel execution time: {end_time - start_time:.2f} seconds.")
 
@@ -150,7 +157,7 @@ def robustness_test(uncertainty, dataset):
     print(f"Average p-value ({dataset}_{uncertainty}): {avg_p_value}")
 
     corr = np.vstack((corr_coef, p_value)).T
-    np.save(f"output/density_al+ep/correlation_{dataset.lower()}_{uncertainty}.npy", corr)
+    np.save(f"output/{uncertainty}_al+ep/correlation_{dataset.lower()}_{uncertainty}.npy", corr)
     
     # Combine and sort by uncertainty
     all_results = []
@@ -161,14 +168,16 @@ def robustness_test(uncertainty, dataset):
         all_results.append(res_sorted)
         plt.figure()
         plt.scatter(res_sorted[:, 0], res_sorted[:, 1], alpha=0.5, c='green')
-        plt.xlabel(f"Total Uncertainty ({uncertainty})")
-        plt.ylabel("Un-Robustness")
-        plt.title(f"Curve: Un-Robustness vs. Uncertainty ({n_iterations} iterations)")
+        plt.xlabel(f"Total Uncertainty", fontsize=18)
+        plt.ylabel("Un-Robustness", fontsize=18)
+        plt.xticks([])
+        plt.yticks([])
+        plt.tight_layout()
         plt.savefig(f"figures/AL+EP/{uncertainty}/unrobustness_vs_uncertainty_{dataset.lower()}_{uncertainty}_{index}.png")
         plt.close()
         index +=1
     all_results = np.array(all_results)
-    np.save(f"output/density_al+ep/data_{dataset.lower()}_{uncertainty}.npy", all_results)
+    np.save(f"output/{uncertainty}_al+ep/data_{dataset.lower()}_{uncertainty}.npy", all_results)
 
     # global_uncertainties = np.concatenate([res[0] for res in results])
     # global_unrobustness = np.concatenate([res[1] for res in results])
