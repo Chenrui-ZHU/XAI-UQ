@@ -1,45 +1,51 @@
 import shapXp as shap_exp
 import cfXp as cf_exp
-import data as dt
-import numpy as np
-import matplotlib.pyplot as plt
-from scipy.stats import pearsonr
+import argparse
+
+DATASET_LIST = [
+    "BREAST_CANCER",
+    "ECOLI",
+    "GLASS",
+    "HEART",
+    "IONOSPHERE",
+    "IRIS",
+    "LIVER",
+    "PARKINSON",
+    "SONAR",
+    "WINE",
+]
+UNCERTAINTY_LIST = [
+    # "entropy",
+    "eknn",
+    # "density",
+    # "centroids",
+]
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="Run ML pipeline on one or all datasets.")
+    parser.add_argument("--dataset", type=str, help="Specify a dataset name.")
+    parser.add_argument("--all", action="store_true", help="Run on all datasets.")
+    return parser.parse_args()
+
+def main():
+    args = parse_args()
+
+    if args.all:
+        for dataset_name in DATASET_LIST:
+            for uncertainty in UNCERTAINTY_LIST:
+                print(f"Running pipeline on dataset: {dataset_name}")
+                shap_exp.robustness(uncertainty, dataset_name)
+                cf_exp.robustness(uncertainty, dataset_name)
+
+
+    elif args.dataset:
+        for uncertainty in UNCERTAINTY_LIST:
+            print(f"Running pipeline on dataset: {args.dataset}")
+            shap_exp.robustness(uncertainty, args.dataset)
+            # cf_exp.uncertainty_test(uncertainty, dataset_name)
+    else:
+        print("Please specify either --dataset DATASET or --all")
 
 if __name__ == "__main__":
-    # exp.training_test()
-    dateset_names = [
-        # "BREAST_CANCER",
-        # "ECOLI",
-        # "GLASS",
-        # "HEART",
-        # "IONOSPHERE",
-        # "IRIS",
-        # "LIVER",
-        "PARKINSON",
-        # "SONAR",
-        # "WINE",
-        ]
-    uncertainties = [
-        # "entropy",
-        # "eknn",
-        # "density",
-        "centroids",
-    ]
-    for dataset_name in dateset_names:
-        for uncertainty in uncertainties:
-            shap_exp.robustness_test(uncertainty, dataset_name)
-            # cf_exp.uncertainty_test(uncertainty, dataset_name)
-
-            # data = np.load(f"output/eknn_al+ep/data_{dataset_name.lower()}_eknn.npy", allow_pickle=True)
-            # for i in range(5):
-            #     subset = data[i:i + 1].reshape(-1, 2)
-            #     plt.figure()
-            #     plt.scatter(subset[:, 0], subset[:, 1], alpha=0.5, c='green')
-            #     plt.xlabel("Total Uncertainty", fontsize=18)
-            #     plt.ylabel("Un-Robustness", fontsize=18)
-            #     plt.xticks([])
-            #     plt.yticks([])
-            #     plt.tight_layout()
-            #     plt.savefig(f"figures/AL+EP/{uncertainty}/unrobustness_vs_uncertainty_{dataset_name.lower()}_{uncertainty}_{i+1}.png")
-            #     plt.close()
+    main()
     print("Done!")

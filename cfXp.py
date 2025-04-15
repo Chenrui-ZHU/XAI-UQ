@@ -1,4 +1,3 @@
-from sklearn.datasets import load_iris, load_breast_cancer, load_wine
 from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.neighbors import NearestNeighbors
@@ -9,15 +8,13 @@ from scipy.stats import spearmanr
 import numpy as np
 import faiss
 import uncertainties as unc
+import data as dt
 
-DATASET = "PARKINSON"
+np.random.seed(42)
 
-def __main__():
-    compute_corr()
-
-def attaigability_test():
+def attaigability_test(dataset):
     # Load and standardize dataset
-    X, y = load_data()
+    X, y = dt.load_data(dataset)
 
     # Split data and train model
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=0)
@@ -63,12 +60,12 @@ def attaigability_test():
     plt.tight_layout()
     plt.show()
 
-def compute_corr():
+def robustness(uncertainty, dataset):
     # Load and standardize dataset
-    X, y = load_data()
+    X, y = dt.load_data(dataset)
     X = preprocessing.StandardScaler().fit_transform(X)
 
-    iterations = 100
+    iterations = 1
 
     global_uncertainties = []
     global_unrobustness = []
@@ -87,13 +84,19 @@ def compute_corr():
         index.add(X_train)
         distances, indices = index.search(X_test, X_train.shape[0])
         distances = np.sqrt(distances)
-
-        # al, ep = unc.eknn_uncertainties(X_train, y_train, X_test)
-        # al, ep = unc.entropy_uncertainties(X_train, y_train, X_test)
-        # al, ep = unc.density_uncertainties(X_train, y_train, X_test)
-        al, ep = unc.density_uncertainties(X_train, y_train, X_test)
         
-        uncertainties = al
+        if uncertainty == "entropy":
+            al, ep = unc.entropy_uncertainties(X_train, y_train, X_test)
+            uncertainties = al
+        if uncertainty == "density":
+            al, ep = unc.density_uncertainties(X_train, y_train, X_test)
+            uncertainties = al
+        if uncertainty == "eknn":
+            al, ep = unc.eknn_uncertainties(X_train, y_train, X_test)
+            uncertainties = al
+        if uncertainty == "centroids":
+            al, ep = unc.centroids_uncertainties(X_train, y_train, X_test)
+            uncertainties = al - ep
 
         # Find counterfactuals
         counterfactual_indices = []
@@ -105,21 +108,24 @@ def compute_corr():
         global_uncertainties.extend(uncertainties)
         global_unrobustness.extend(counterfactual_distances)
 
-
     stat, p_val = spearmanr(global_unrobustness, global_uncertainties)
     print(stat, p_val)
 
-    plt.scatter(global_unrobustness, global_uncertainties, alpha=0.5, c='r')
-    plt.xlabel("Aleatoric uncertainty", fontsize=18)
-    plt.ylabel("Dissimilarity", fontsize=18)
-    plt.xticks([])
-    plt.yticks([])
-    plt.tight_layout()
-    plt.show()
+    if iterations == 1:
+        plt.figure()
+        plt.scatter(global_unrobustness, global_uncertainties, alpha=0.5, c='r')
+        plt.xlabel("Aleatoric uncertainty", fontsize=18)
+        plt.ylabel("Dissimilarity", fontsize=18)
+        plt.xticks([])
+        plt.yticks([])
+        plt.tight_layout()
+        plt.savefig(f"figures/cf/{uncertainty}/{dataset.lower()}_{uncertainty}.png")
+        plt.close()
+        # plt.show()
 
-def epistemic_reject():
+def epistemic_reject(uncertainty, dataset):
     # Load and standardize dataset
-    X, y = load_data()
+    X, y = dt.load_data(dataset)
 
     # Split data and train model
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=0)
@@ -128,10 +134,14 @@ def epistemic_reject():
     nbrs = NearestNeighbors(n_neighbors=X_train.shape[0], algorithm='auto').fit(X_train)
     distances, indices = nbrs.kneighbors(X_test)
 
-    al, ep = unc.eknn_uncertainties(X_train, y_train, X_test)
-    # al, ep = unc.entropy_uncertainties(X_train, y_train, X_test)
-    # al, ep = unc.density_uncertainties(X_train, y_train, X_test)
-    # al, ep = unc.centroids_uncertainties(X_train, y_train, X_test)
+    if uncertainty == "entropy":
+        al, ep = unc.entropy_uncertainties(X_train, y_train, X_test)
+    if uncertainty == "density":
+        al, ep = unc.density_uncertainties(X_train, y_train, X_test)
+    if uncertainty == "eknn":
+        al, ep = unc.eknn_uncertainties(X_train, y_train, X_test)
+    if uncertainty == "centroids":
+        al, ep = unc.centroids_uncertainties(X_train, y_train, X_test)
     
     uncertainties = ep
 
@@ -140,11 +150,14 @@ def epistemic_reject():
     for i in range(X_test.shape[0]):
         density_list.append(len(np.where(uncertainties >= sorted_unc[i])[0]))
 
+    plt.figure()
     plt.scatter(sorted_unc, density_list, alpha=0.5, c='b')
     plt.xlabel("Epistemic uncertainty", fontsize=18)
     plt.ylabel("Number of rejected explanations", fontsize=18)
     plt.tight_layout()
-    plt.show()
+    plt.savefig(f"figures/shap/{dataset.lower()}_{uncertainty}_rejection.png")
+    plt.close()
+    # plt.show()
 
     model = KNeighborsClassifier(n_neighbors=7, weights="distance")
     model.fit(X_train, y_train)
@@ -164,54 +177,12 @@ def epistemic_reject():
 
     highest = np.argsort(np.absolute(explanations[indice]))[-2:]
     
+    plt.figure()
     plt.scatter(X_train[:, highest[1]], X_train[:, highest[0]], c='black', s=15)
     plt.scatter(X_test[indice, highest[1]], X_test[indice, highest[0]], c='red', s=40)
     plt.xlabel(feature_names[highest[1]], fontsize=18)
     plt.ylabel(feature_names[highest[0]], fontsize=18)
     plt.tight_layout()
-    plt.show()
-
-
-def load_data():
-    if DATASET == "IRIS":
-        X, y = load_iris(return_X_y=True)
-    elif DATASET == "WINE":
-        X, y = load_wine(return_X_y=True)
-    elif DATASET == "BREAST":
-        X, y = load_breast_cancer(return_X_y=True)
-    elif DATASET == 'ECOLI':
-        X = np.genfromtxt('datasets/ecoli/ecoli.data',delimiter=',', usecols = [1,2,3,4,5,6,7])
-        y = np.genfromtxt('datasets/ecoli/ecoli.data',delimiter=',', usecols = [8], dtype=str)
-        y = preprocessing.LabelEncoder().fit(y).transform(y)
-    elif DATASET == 'GLASS':
-        X = np.genfromtxt('datasets/glass/glass.data',delimiter=',', usecols = [1,2,3,4,5,6,7,8,9])
-        y = np.genfromtxt('datasets/glass/glass.data',delimiter=',', usecols = [10])
-        y = preprocessing.LabelEncoder().fit(y).transform(y)
-    elif DATASET == 'IONOSPHERE':
-        X = np.genfromtxt('datasets/ionosphere/ionosphere.data',delimiter=',', usecols = [i for i in range(0, 34)])
-        y = np.genfromtxt('datasets/ionosphere/ionosphere.data',delimiter=',', usecols = [34], dtype=str)
-        y = preprocessing.LabelEncoder().fit(y).transform(y)
-    elif DATASET == 'LIVER':
-        X = np.genfromtxt('datasets/liver/bupa.data',delimiter=',', usecols = [0, 1, 2, 3, 4, 5])
-        y = np.genfromtxt('datasets/liver/bupa.data',delimiter=',', usecols = [6], dtype=str)
-        y = preprocessing.LabelEncoder().fit(y).transform(y)
-    elif DATASET == 'SONAR':
-        X = np.genfromtxt('datasets/sonar/sonar.data',delimiter=',', usecols = [i for i in range(0, 60)])
-        y = np.genfromtxt('datasets/sonar/sonar.data',delimiter=',', usecols = [60], dtype=str)
-        y = preprocessing.LabelEncoder().fit(y).transform(y)
-    elif DATASET == "HEART":
-        X = np.genfromtxt('datasets/heart/heart.data',delimiter=',', usecols = [0, 1, 3, 4, 5, 7, 9])
-        y = np.genfromtxt('datasets/heart/heart.data',delimiter=',', usecols = [13], dtype=str)
-        y[np.where(y != '0')[0]] = '1'
-        y = preprocessing.LabelEncoder().fit(y).transform(y)
-    elif DATASET == "PARKINSON":
-        X = np.genfromtxt('datasets/parkinson/parkinsons.data',delimiter=',', usecols = [i for i in range(1, 17)] + [i for i in range(18, 24)])
-        y = np.genfromtxt('datasets/parkinson/parkinsons.data',delimiter=',', usecols = [17], dtype=str)
-        y = preprocessing.LabelEncoder().fit(y).transform(y)
-
-    # Scale data
-    X = preprocessing.StandardScaler().fit_transform(X)
-
-    return X, y
-
-# __main__()
+    plt.savefig(f"figures/shap/{dataset.lower()}_{uncertainty}_2D.png")
+    plt.close()
+    # plt.show()

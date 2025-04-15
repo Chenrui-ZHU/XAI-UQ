@@ -1,4 +1,3 @@
-from sklearn.datasets import load_iris, load_breast_cancer, load_wine
 from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KNeighborsClassifier
 import matplotlib.pyplot as plt
@@ -8,16 +7,15 @@ import numpy as np
 import shap
 import uncertainties as unc
 import time
-from joblib import Parallel, delayed
 from math import sqrt
 import data as dt
 from scipy.stats import pearsonr
-import multiprocessing as mp
+from joblib import Parallel, delayed
 
-# mp.set_start_method("fork", force=True)
+np.random.seed(42)
 
-def training_test():
-    X, y = load_iris(return_X_y=True)
+def attaigability_test(dataset):
+    X, y = dt.load_data(dataset)
 
     # Standardize data
     X = preprocessing.StandardScaler().fit_transform(X)
@@ -120,13 +118,13 @@ def process_iteration(X, y, n_neighbors, epsilon, uncertainty):
         uncertainties = al + ep
     if uncertainty == "centroids":
         al, ep = unc.centroids_uncertainties(X_train, y_train, X_test)
-        uncertainties = al + ep
+        uncertainties = al
     return uncertainties, unrobust_values
 
-def robustness_test(uncertainty, dataset):
+def robustness(uncertainty, dataset):
     X, y = dt.load_data(dataset)
     
-    n_iterations = 5    # Number of iterations (increase for final experiments)
+    n_iterations = 1    # Number of iterations (increase for final experiments)
     n_neighbors = 30     # Number of neighbors to generate per test instance
     epsilon = sqrt(pow(0.1,2) * X.shape[1])        # Radius for generating neighbors
     
@@ -134,14 +132,19 @@ def robustness_test(uncertainty, dataset):
 
     # Run iterations in parallel using all available CPU cores
     start_time = time.time()
-    results = Parallel(n_jobs=-1)(
-        delayed(process_iteration)(X, y, n_neighbors, epsilon, uncertainty)
-        for _ in range(n_iterations)
-    )
-    # results = []
-    # for _ in range(n_iterations):
-    #     result = process_iteration(X, y, n_neighbors, epsilon, uncertainty)
-    #     results.append(result)
+
+    # Uncomment the following lines to enable parallel processing
+    # results = Parallel(n_jobs=-1)(
+    #     delayed(process_iteration)(X, y, n_neighbors, epsilon, uncertainty)
+    #     for _ in range(n_iterations)
+    # )
+
+    # For now, we will run the iterations sequentially
+    results = []
+    for _ in range(n_iterations):
+        result = process_iteration(X, y, n_neighbors, epsilon, uncertainty)
+        results.append(result)
+
     end_time = time.time()
     print(f"Total parallel execution time: {end_time - start_time:.2f} seconds.")
 
@@ -156,37 +159,27 @@ def robustness_test(uncertainty, dataset):
     print(f"Average correlation coefficient ({dataset}_{uncertainty}): {avg_corr_coef}")
     print(f"Average p-value ({dataset}_{uncertainty}): {avg_p_value}")
 
-    corr = np.vstack((corr_coef, p_value)).T
-    np.save(f"output/{uncertainty}_al+ep/correlation_{dataset.lower()}_{uncertainty}.npy", corr)
+    # Save correlation coefficients and p-values
+    # corr = np.vstack((corr_coef, p_value)).T
+    # np.save(f"output/shap/{uncertainty}/correlation_{dataset.lower()}_{uncertainty}.npy", corr)
     
     # Combine and sort by uncertainty
     all_results = []
-    index = 1
     for res in results:
         temp = np.vstack((res[0], res[1])).T
         res_sorted = temp[np.argsort(temp[:, 0])]
         all_results.append(res_sorted)
-        plt.figure()
-        plt.scatter(res_sorted[:, 0], res_sorted[:, 1], alpha=0.5, c='green')
-        plt.xlabel(f"Total Uncertainty", fontsize=18)
-        plt.ylabel("Un-Robustness", fontsize=18)
-        plt.xticks([])
-        plt.yticks([])
-        plt.tight_layout()
-        plt.savefig(f"figures/AL+EP/{uncertainty}/unrobustness_vs_uncertainty_{dataset.lower()}_{uncertainty}_{index}.png")
-        plt.close()
-        index +=1
-    all_results = np.array(all_results)
-    np.save(f"output/{uncertainty}_al+ep/data_{dataset.lower()}_{uncertainty}.npy", all_results)
+        if n_iterations == 1:
+            plt.figure()
+            plt.scatter(res_sorted[:, 0], res_sorted[:, 1], alpha=0.5, c='green')
+            plt.xlabel(f"Total Uncertainty", fontsize=18)
+            plt.ylabel("Un-Robustness", fontsize=18)
+            plt.xticks([])
+            plt.yticks([])
+            plt.tight_layout()
+            plt.savefig(f"figures/shap/{uncertainty}/{dataset.lower()}_{uncertainty}.png")
+            plt.close()
 
-    # global_uncertainties = np.concatenate([res[0] for res in results])
-    # global_unrobustness = np.concatenate([res[1] for res in results])
-    # combined = np.vstack((global_uncertainties, global_unrobustness)).T
-    # combined_sorted = combined[np.argsort(combined[:, 0])]
-    # # Divide sorted data into 20 groups for smoothing
-    # groups = np.array_split(combined_sorted, 20)
-    
-    # avg_uncertainties = [group[:, 0].mean() for group in groups]
-    # avg_unrobustness = [group[:, 1].mean() for group in groups]
-    
-
+    # Save all results
+    # all_results = np.array(all_results)
+    # np.save(f"output/shap/{uncertainty}/data_{dataset.lower()}_{uncertainty}.npy", all_results)
