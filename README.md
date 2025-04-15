@@ -35,7 +35,7 @@ Ensure you are using a Python environment (e.g., `venv`) for better reproducibil
 
 Run the main script to launch experiments using different datasets, explanation methods, and uncertainty estimation approaches.
 
-### 🔧 Single Dataset
+### Single Dataset
 
 To run the pipeline on a specific dataset:
 
@@ -45,7 +45,7 @@ python main.py --dataset dataset_name
 
 Replace `dataset_name` with any given dataset (e.g., `PARKINSON`, `WINE`, `HEART`, etc.).
 
-### 📊 All Datasets
+### All Datasets
 
 To run the pipeline on **all available datasets**:
 
