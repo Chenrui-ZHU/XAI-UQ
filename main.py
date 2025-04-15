@@ -36,13 +36,11 @@ def main():
                 print(f"Running pipeline on dataset: {dataset_name}")
                 shap_exp.robustness(uncertainty, dataset_name)
                 cf_exp.robustness(uncertainty, dataset_name)
-
-
     elif args.dataset:
         for uncertainty in UNCERTAINTY_LIST:
             print(f"Running pipeline on dataset: {args.dataset}")
             shap_exp.robustness(uncertainty, args.dataset)
-            # cf_exp.uncertainty_test(uncertainty, dataset_name)
+            cf_exp.robustness(uncertainty, args.dataset)
     else:
         print("Please specify either --dataset DATASET or --all")
 

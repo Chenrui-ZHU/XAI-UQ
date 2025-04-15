@@ -11,6 +11,7 @@ from math import sqrt
 import data as dt
 from scipy.stats import pearsonr
 from joblib import Parallel, delayed
+import os
 
 np.random.seed(42)
 
@@ -124,7 +125,7 @@ def process_iteration(X, y, n_neighbors, epsilon, uncertainty):
 def robustness(uncertainty, dataset):
     X, y = dt.load_data(dataset)
     
-    n_iterations = 1    # Number of iterations (increase for final experiments)
+    n_iterations = 5    # Number of iterations (increase for final experiments)
     n_neighbors = 30     # Number of neighbors to generate per test instance
     epsilon = sqrt(pow(0.1,2) * X.shape[1])        # Radius for generating neighbors
     
@@ -156,6 +157,7 @@ def robustness(uncertainty, dataset):
         p_value.append(p_value_temp)
     avg_corr_coef = np.mean(corr_coef)
     avg_p_value = np.mean(p_value)
+    print("---SHAP robustness---")
     print(f"Average correlation coefficient ({dataset}_{uncertainty}): {avg_corr_coef}")
     print(f"Average p-value ({dataset}_{uncertainty}): {avg_p_value}")
 
@@ -170,6 +172,7 @@ def robustness(uncertainty, dataset):
         res_sorted = temp[np.argsort(temp[:, 0])]
         all_results.append(res_sorted)
         if n_iterations == 1:
+            os.makedirs(f"figures/shap/{uncertainty}", exist_ok=True)
             plt.figure()
             plt.scatter(res_sorted[:, 0], res_sorted[:, 1], alpha=0.5, c='green')
             plt.xlabel(f"Total Uncertainty", fontsize=18)

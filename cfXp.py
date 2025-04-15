@@ -9,6 +9,7 @@ import numpy as np
 import faiss
 import uncertainties as unc
 import data as dt
+import os
 
 np.random.seed(42)
 
@@ -65,7 +66,7 @@ def robustness(uncertainty, dataset):
     X, y = dt.load_data(dataset)
     X = preprocessing.StandardScaler().fit_transform(X)
 
-    iterations = 1
+    iterations = 100
 
     global_uncertainties = []
     global_unrobustness = []
@@ -109,9 +110,12 @@ def robustness(uncertainty, dataset):
         global_unrobustness.extend(counterfactual_distances)
 
     stat, p_val = spearmanr(global_unrobustness, global_uncertainties)
-    print(stat, p_val)
+    print("---Counterfactual robustness---")
+    print(f"Average correlation coefficient ({dataset}_{uncertainty}): {stat}")
+    print(f"Average p-value ({dataset}_{uncertainty}): {p_val}")
 
     if iterations == 1:
+        os.makedirs(f"figures/cf/{uncertainty}", exist_ok=True)
         plt.figure()
         plt.scatter(global_unrobustness, global_uncertainties, alpha=0.5, c='r')
         plt.xlabel("Aleatoric uncertainty", fontsize=18)
@@ -150,12 +154,13 @@ def epistemic_reject(uncertainty, dataset):
     for i in range(X_test.shape[0]):
         density_list.append(len(np.where(uncertainties >= sorted_unc[i])[0]))
 
+    os.makedirs(f"figures/shap/rejection/{uncertainty}", exist_ok=True)
     plt.figure()
     plt.scatter(sorted_unc, density_list, alpha=0.5, c='b')
     plt.xlabel("Epistemic uncertainty", fontsize=18)
     plt.ylabel("Number of rejected explanations", fontsize=18)
     plt.tight_layout()
-    plt.savefig(f"figures/shap/{dataset.lower()}_{uncertainty}_rejection.png")
+    plt.savefig(f"figures/shap/rejection/{dataset.lower()}_{uncertainty}.png")
     plt.close()
     # plt.show()
 
@@ -183,6 +188,6 @@ def epistemic_reject(uncertainty, dataset):
     plt.xlabel(feature_names[highest[1]], fontsize=18)
     plt.ylabel(feature_names[highest[0]], fontsize=18)
     plt.tight_layout()
-    plt.savefig(f"figures/shap/{dataset.lower()}_{uncertainty}_2D.png")
+    plt.savefig(f"figures/shap/rejection/{dataset.lower()}_{uncertainty}_2D.png")
     plt.close()
     # plt.show()
