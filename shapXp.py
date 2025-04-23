@@ -120,6 +120,9 @@ def process_iteration(X, y, n_neighbors, epsilon, uncertainty):
     if uncertainty == "centroids":
         al, ep = unc.centroids_uncertainties(X_train, y_train, X_test)
         uncertainties = al
+    if uncertainty == "deep_ensemble":
+        al, ep = unc.deep_ensemble(X_train, y_train, X_test)
+        uncertainties = al + ep
     return uncertainties, unrobust_values
 
 def robustness(uncertainty, dataset):
@@ -135,16 +138,16 @@ def robustness(uncertainty, dataset):
     start_time = time.time()
 
     # Uncomment the following lines to enable parallel processing
-    # results = Parallel(n_jobs=-1)(
-    #     delayed(process_iteration)(X, y, n_neighbors, epsilon, uncertainty)
-    #     for _ in range(n_iterations)
-    # )
+    results = Parallel(n_jobs=-1)(
+        delayed(process_iteration)(X, y, n_neighbors, epsilon, uncertainty)
+        for _ in range(n_iterations)
+    )
 
     # For now, we will run the iterations sequentially
-    results = []
-    for _ in range(n_iterations):
-        result = process_iteration(X, y, n_neighbors, epsilon, uncertainty)
-        results.append(result)
+    # results = []
+    # for _ in range(n_iterations):
+    #     result = process_iteration(X, y, n_neighbors, epsilon, uncertainty)
+    #     results.append(result)
 
     end_time = time.time()
     print(f"Total parallel execution time: {end_time - start_time:.2f} seconds.")
@@ -162,8 +165,9 @@ def robustness(uncertainty, dataset):
     print(f"Average p-value ({dataset}_{uncertainty}): {avg_p_value}")
 
     # Save correlation coefficients and p-values
-    # corr = np.vstack((corr_coef, p_value)).T
-    # np.save(f"output/shap/{uncertainty}/correlation_{dataset.lower()}_{uncertainty}.npy", corr)
+    os.makedirs(f"output/shap/{uncertainty}", exist_ok=True)
+    corr = np.vstack((corr_coef, p_value)).T
+    np.save(f"output/shap/{uncertainty}/correlation_{dataset.lower()}_{uncertainty}.npy", corr)
     
     # Combine and sort by uncertainty
     all_results = []
@@ -184,5 +188,5 @@ def robustness(uncertainty, dataset):
             plt.close()
 
     # Save all results
-    # all_results = np.array(all_results)
-    # np.save(f"output/shap/{uncertainty}/data_{dataset.lower()}_{uncertainty}.npy", all_results)
+    all_results = np.array(all_results)
+    np.save(f"output/shap/{uncertainty}/data_{dataset.lower()}_{uncertainty}.npy", all_results)

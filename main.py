@@ -16,9 +16,10 @@ DATASET_LIST = [
 ]
 UNCERTAINTY_LIST = [
     # "entropy",
-    "eknn",
+    # "eknn",
     # "density",
     # "centroids",
+    "deep_ensemble",
 ]
 
 def parse_args():
@@ -35,12 +36,12 @@ def main():
             for uncertainty in UNCERTAINTY_LIST:
                 print(f"Running pipeline on dataset: {dataset_name}")
                 shap_exp.robustness(uncertainty, dataset_name)
-                cf_exp.robustness(uncertainty, dataset_name)
+                # cf_exp.robustness(uncertainty, dataset_name)
     elif args.dataset:
         for uncertainty in UNCERTAINTY_LIST:
             print(f"Running pipeline on dataset: {args.dataset}")
             shap_exp.robustness(uncertainty, args.dataset)
-            cf_exp.robustness(uncertainty, args.dataset)
+            # cf_exp.robustness(uncertainty, args.dataset)
     else:
         print("Please specify either --dataset DATASET or --all")
 
