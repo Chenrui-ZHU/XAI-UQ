@@ -9,12 +9,12 @@ if __name__ == "__main__":
     dateset_names = [
         # "ECOLI",
         # "GLASS",
-        # "IONOSPHERE",
-        # "BREAST_CANCER",
-        "HEART",
+        "IONOSPHERE",
+        "BREAST_CANCER",
+        # "HEART",
         # "IRIS",
-        "SONAR",
-        "LIVER",
+        # "SONAR",
+        # "LIVER",
         # "WINE",
         ]
     uncertainties = [
