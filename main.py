@@ -1,55 +1,50 @@
-import shapXp as exp
-import data as dt
-import numpy as np
-import matplotlib.pyplot as plt
-from scipy.stats import pearsonr
+import shapXp as shap_exp
+import cfXp as cf_exp
+import argparse
+
+DATASET_LIST = [
+    "BREAST_CANCER",
+    "ECOLI",
+    "GLASS",
+    "HEART",
+    "IONOSPHERE",
+    "IRIS",
+    "LIVER",
+    "PARKINSON",
+    "SONAR",
+    "WINE",
+]
+UNCERTAINTY_LIST = [
+    # "entropy",
+    # "eknn",
+    # "density",
+    # "centroids",
+    "deep_ensemble",
+]
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="Run ML pipeline on one or all datasets.")
+    parser.add_argument("--dataset", type=str, help="Specify a dataset name.")
+    parser.add_argument("--all", action="store_true", help="Run on all datasets.")
+    return parser.parse_args()
+
+def main():
+    args = parse_args()
+
+    if args.all:
+        for dataset_name in DATASET_LIST:
+            for uncertainty in UNCERTAINTY_LIST:
+                print(f"Running pipeline on dataset: {dataset_name}")
+                shap_exp.robustness(uncertainty, dataset_name)
+                # cf_exp.robustness(uncertainty, dataset_name)
+    elif args.dataset:
+        for uncertainty in UNCERTAINTY_LIST:
+            print(f"Running pipeline on dataset: {args.dataset}")
+            shap_exp.robustness(uncertainty, args.dataset)
+            # cf_exp.robustness(uncertainty, args.dataset)
+    else:
+        print("Please specify either --dataset DATASET or --all")
 
 if __name__ == "__main__":
-    # exp.training_test()
-    dateset_names = [
-        # "ECOLI",
-        # "GLASS",
-        "IONOSPHERE",
-        "BREAST_CANCER",
-        # "HEART",
-        # "IRIS",
-        # "SONAR",
-        # "LIVER",
-        # "WINE",
-        ]
-    uncertainties = [
-        # "entropy",
-        # "eknn",
-        "density",
-        # "centroids",
-    ]
-    for dataset_name in dateset_names:
-        for uncertainty in uncertainties:
-            exp.robustness_test(uncertainty, dataset_name)
+    main()
     print("Done!")
-
-    # data = np.load("output/data_breast_cancer_eknn.npy", allow_pickle=True)
-    # print(data.shape)
-    # X, y = dt.load_data("BREAST_CANCER")
-    # print(X.shape)
-    # plt.figure()
-    # plt.scatter(data[:171, 0], data[:171, 1], alpha=0.5, c='green')
-    # plt.xlabel(f"Aleatoric Uncertainty (eknn)")
-    # plt.ylabel("Dissimilarity")
-    # plt.title(f"Curve: Un-Robustness vs. Uncertainty ({5} iterations)")
-    # plt.savefig(f"figures/AL+EP/dissimilarity_vs_uncertainty_breast_cancer_eknn.png")
-
-    # correlations = []
-    # p_values = []
-    # for i in range(5):
-    #     start_idx = i * 171
-    #     end_idx = (i + 1) * 171
-    #     corr, p_value = pearsonr(data[start_idx:end_idx, 0], data[start_idx:end_idx, 1])
-    #     correlations.append(corr)
-    #     p_values.append(p_value)
-
-    # # Compute the mean Pearson correlation
-    # mean_correlation = np.mean(correlations)
-    # mean_p_value = np.mean(p_values)
-    # print(f"Mean Pearson Correlation over 5 iterations: {mean_correlation}")    
-    # print(f"Mean p-value over 5 iterations: {mean_p_value}")
