@@ -98,6 +98,9 @@ def robustness(uncertainty, dataset):
         if uncertainty == "centroids":
             al, ep = unc.centroids_uncertainties(X_train, y_train, X_test)
             uncertainties = al - ep
+        if uncertainty == "deep_ensemble":
+            al, ep = unc.deep_ensemble(X_train, y_train, X_test)
+            uncertainties = al
 
         # Find counterfactuals
         counterfactual_indices = []
