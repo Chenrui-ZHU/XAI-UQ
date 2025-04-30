@@ -9,7 +9,7 @@ import uncertainties as unc
 import time
 from math import sqrt
 import data as dt
-from scipy.stats import pearsonr
+from scipy.stats import pearsonr, combine_pvalues
 from joblib import Parallel, delayed
 import os
 
@@ -138,35 +138,34 @@ def robustness(uncertainty, dataset):
     start_time = time.time()
 
     # Uncomment the following lines to enable parallel processing
-    results = Parallel(n_jobs=-1)(
-        delayed(process_iteration)(X, y, n_neighbors, epsilon, uncertainty)
-        for _ in range(n_iterations)
-    )
+    # results = Parallel(n_jobs=-1)(
+    #     delayed(process_iteration)(X, y, n_neighbors, epsilon, uncertainty)
+    #     for _ in range(n_iterations)
+    # )
 
     # For now, we will run the iterations sequentially
-    # results = []
-    # for _ in range(n_iterations):
-    #     result = process_iteration(X, y, n_neighbors, epsilon, uncertainty)
-    #     results.append(result)
+    results = []
+    for _ in range(n_iterations):
+        result = process_iteration(X, y, n_neighbors, epsilon, uncertainty)
+        results.append(result)
 
     end_time = time.time()
     print(f"Total parallel execution time: {end_time - start_time:.2f} seconds.")
 
-    corr_coef = []
-    p_value = []
+    all_uncertainties = []
+    all_robustness = []
+
     for result in results:
-        corr_coef_temp, p_value_temp = pearsonr(result[0], result[1])
-        corr_coef.append(corr_coef_temp)
-        p_value.append(p_value_temp)
-    avg_corr_coef = np.mean(corr_coef)
-    avg_p_value = np.mean(p_value)
+        all_uncertainties.extend(result[0])
+        all_robustness.extend(result[1])
+    corr, p_val = pearsonr(all_uncertainties, all_robustness)
     print("---SHAP robustness---")
-    print(f"Average correlation coefficient ({dataset}_{uncertainty}): {avg_corr_coef}")
-    print(f"Average p-value ({dataset}_{uncertainty}): {avg_p_value}")
+    print(f"Overall correlation coefficient ({dataset}_{uncertainty}): {corr:.4f}")
+    print(f"Overall p-value ({dataset}_{uncertainty}): {p_val:.4e}")
 
     # Save correlation coefficients and p-values
     os.makedirs(f"output/shap/{uncertainty}", exist_ok=True)
-    corr = np.vstack((corr_coef, p_value)).T
+    corr = np.vstack((corr, p_val)).T
     np.save(f"output/shap/{uncertainty}/correlation_{dataset.lower()}_{uncertainty}.npy", corr)
     
     # Combine and sort by uncertainty
