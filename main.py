@@ -3,10 +3,10 @@ import cfXp as cf_exp
 import argparse
 
 DATASET_LIST = [
-    "BREAST_CANCER",
-    "ECOLI",
-    "GLASS",
-    "HEART",
+    # "BREAST_CANCER",
+    # "ECOLI",
+    # "GLASS",
+    # "HEART",
     "IONOSPHERE",
     "IRIS",
     "LIVER",
