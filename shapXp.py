@@ -143,7 +143,7 @@ def robustness(uncertainty, dataset):
     #     for _ in range(n_iterations)
     # )
 
-    # For now, we will run the iterations sequentially
+    # Run the iterations sequentially
     results = []
     for _ in range(n_iterations):
         result = process_iteration(X, y, n_neighbors, epsilon, uncertainty)
@@ -164,9 +164,9 @@ def robustness(uncertainty, dataset):
     print(f"Overall p-value ({dataset}_{uncertainty}): {p_val:.4e}")
 
     # Save correlation coefficients and p-values
-    os.makedirs(f"output/shap/{uncertainty}", exist_ok=True)
-    corr = np.vstack((corr, p_val)).T
-    np.save(f"output/shap/{uncertainty}/correlation_{dataset.lower()}_{uncertainty}.npy", corr)
+    # os.makedirs(f"output/shap/{uncertainty}", exist_ok=True)
+    # corr = np.vstack((corr, p_val)).T
+    # np.savetxt(f"output/shap/{uncertainty}/correlation_{dataset.lower()}_{uncertainty}.csv", corr, delimiter=",", fmt='%s')
     
     # Combine and sort by uncertainty
     all_results = []
@@ -187,5 +187,5 @@ def robustness(uncertainty, dataset):
             plt.close()
 
     # Save all results
-    all_results = np.array(all_results)
-    np.save(f"output/shap/{uncertainty}/data_{dataset.lower()}_{uncertainty}.npy", all_results)
+    # all_results = np.array(all_results)
+    # np.save(f"output/shap/{uncertainty}/data_{dataset.lower()}_{uncertainty}.npy", all_results)

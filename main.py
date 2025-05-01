@@ -3,20 +3,20 @@ import cfXp as cf_exp
 import argparse
 
 DATASET_LIST = [
-    # "BREAST_CANCER",
-    # "ECOLI",
-    # "GLASS",
-    # "HEART",
-    # "IONOSPHERE",
+    "BREAST_CANCER",
+    "ECOLI",
+    "GLASS",
+    "HEART",
+    "IONOSPHERE",
     "IRIS",
     "LIVER",
-    # "PARKINSON",
-    # "SONAR",
-    # "WINE",
+    "PARKINSON",
+    "SONAR",
+    "WINE",
 ]
 UNCERTAINTY_LIST = [
-    "entropy",
-    # "eknn",
+    # "entropy",
+    "eknn",
     # "density",
     # "centroids",
     # "deep_ensemble",
