@@ -117,6 +117,11 @@ def robustness(uncertainty, dataset):
     print(f"Average correlation coefficient ({dataset}_{uncertainty}): {stat}")
     print(f"Average p-value ({dataset}_{uncertainty}): {p_val}")
 
+    # Save to csv
+    os.makedirs(f"output/cf/{uncertainty}", exist_ok=True)
+    corr = np.vstack((stat, p_val)).T
+    np.savetxt(f"output/cf/{uncertainty}/correlation_{dataset.lower()}_{uncertainty}.csv", corr, delimiter=",")
+
     if iterations == 1:
         os.makedirs(f"figures/cf/{uncertainty}", exist_ok=True)
         plt.figure()

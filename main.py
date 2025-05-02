@@ -1,15 +1,16 @@
 import shapXp as shap_exp
 import cfXp as cf_exp
 import argparse
+import numpy as np
 
 DATASET_LIST = [
     # "BREAST_CANCER",
     # "ECOLI",
-    # "GLASS",
+    "GLASS",
     # "HEART",
     # "IONOSPHERE",
-    "IRIS",
-    "LIVER",
+    # "IRIS",
+    # "LIVER",
     # "PARKINSON",
     # "SONAR",
     # "WINE",
@@ -35,16 +36,20 @@ def main():
         for dataset_name in DATASET_LIST:
             for uncertainty in UNCERTAINTY_LIST:
                 print(f"Running pipeline on dataset: {dataset_name}")
-                shap_exp.robustness(uncertainty, dataset_name)
+                # shap_exp.robustness(uncertainty, dataset_name)
                 cf_exp.robustness(uncertainty, dataset_name)
     elif args.dataset:
         for uncertainty in UNCERTAINTY_LIST:
             print(f"Running pipeline on dataset: {args.dataset}")
-            shap_exp.robustness(uncertainty, args.dataset)
+            # shap_exp.robustness(uncertainty, args.dataset)
             cf_exp.robustness(uncertainty, args.dataset)
     else:
         print("Please specify either --dataset DATASET or --all")
 
 if __name__ == "__main__":
     main()
+
+    # read .npy file
+    # data = np.load("output/shap/centroids/correlation_ionosphere_centroids.npy")
+    # print(data)
     print("Done!")
