@@ -11,7 +11,7 @@ import uncertainties as unc
 import data as dt
 import os
 
-np.random.seed(42)
+# np.random.seed(0)
 
 def attaigability_test(dataset):
     # Load and standardize dataset
@@ -80,12 +80,6 @@ def robustness(uncertainty, dataset):
         model.fit(X_train, y_train)
         y_pred = model.predict(X_test)
 
-        # Fast Neighbors search
-        index = faiss.IndexFlatL2(X_train.shape[1]) 
-        index.add(X_train)
-        distances, indices = index.search(X_test, X_train.shape[0])
-        distances = np.sqrt(distances)
-        
         if uncertainty == "entropy":
             al, ep = unc.entropy_uncertainties(X_train, y_train, X_test)
             uncertainties = al
@@ -102,6 +96,20 @@ def robustness(uncertainty, dataset):
             al, ep = unc.deep_ensemble(X_train, y_train, X_test)
             uncertainties = al
 
+        # idx = np.argsort(ep)
+        # idx = idx[:int(len(X_test)*0.7)] 
+
+        # uncertainties = uncertainties[idx]
+        # ep = ep[idx]
+        # X_test = X_test[idx]
+        # y_pred = y_pred[idx]
+
+        # Fast Neighbors search
+        index = faiss.IndexFlatL2(X_train.shape[1]) 
+        index.add(X_train)
+        distances, indices = index.search(X_test, X_train.shape[0])
+        distances = np.sqrt(distances)
+
         # Find counterfactuals
         counterfactual_indices = []
         for i in range(distances.shape[0]):
@@ -117,11 +125,11 @@ def robustness(uncertainty, dataset):
     print(f"Average correlation coefficient ({dataset}_{uncertainty}): {stat}")
     print(f"Average p-value ({dataset}_{uncertainty}): {p_val}")
 
-    # Save to csv
-    os.makedirs(f"output/cf/{uncertainty}", exist_ok=True)
-    corr = np.vstack((stat, p_val)).T
-    np.savetxt(f"output/cf/{uncertainty}/correlation_{dataset.lower()}_{uncertainty}.csv", corr, delimiter=",")
-
+    # Save results
+    # os.makedirs(f"output/cf/{uncertainty}", exist_ok=True)
+    # corr = np.vstack((stat, p_val)).T
+    # np.savetxt(f"output/cf/{uncertainty}/correlation_{dataset.lower()}_{uncertainty}.csv", corr, delimiter=",", fmt='%s')
+    
     if iterations == 1:
         os.makedirs(f"figures/cf/{uncertainty}", exist_ok=True)
         plt.figure()
