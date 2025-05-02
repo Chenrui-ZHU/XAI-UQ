@@ -12,6 +12,7 @@ import data as dt
 from scipy.stats import pearsonr, combine_pvalues
 from joblib import Parallel, delayed
 import os
+import faiss
 
 np.random.seed(42)
 
@@ -63,10 +64,10 @@ def attaigability_test(dataset):
     plt.title("Uncertainty vs Un-Robustness")
     plt.savefig("figures/uncertainty_vs_unrobustness.png")
 
-def process_iteration(X, y, n_neighbors, epsilon, uncertainty):
+def process_iteration(X, y, n_neighbors, epsilon, uncertainty, n_iterations):
     nb_variables = X.shape[1]
     # Split data and train model
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state= 42 + n_iterations)
     model = KNeighborsClassifier(n_neighbors=7, weights="distance")
     model.fit(X_train, y_train)
 
@@ -110,20 +111,20 @@ def process_iteration(X, y, n_neighbors, epsilon, uncertainty):
     # Compute uncertainty
     if uncertainty == "entropy":
         al, ep = unc.entropy_uncertainties(X_train, y_train, X_test)
-        uncertainties = al + ep
+        uncertainties = al
     if uncertainty == "density":
         al, ep = unc.density_uncertainties(X_train, y_train, X_test)
-        uncertainties = al + ep
+        uncertainties = al
     if uncertainty == "eknn":
         al, ep = unc.eknn_uncertainties(X_train, y_train, X_test)
-        uncertainties = al + ep
+        uncertainties = al
     if uncertainty == "centroids":
         al, ep = unc.centroids_uncertainties(X_train, y_train, X_test)
-        uncertainties = al
+        uncertainties = al - ep
     if uncertainty == "deep_ensemble":
         al, ep = unc.deep_ensemble(X_train, y_train, X_test)
-        uncertainties = al + ep
-    return uncertainties, unrobust_values
+        uncertainties = al
+    return uncertainties, unrobust_values, ep, X_test
 
 def robustness(uncertainty, dataset):
     X, y = dt.load_data(dataset)
@@ -138,16 +139,16 @@ def robustness(uncertainty, dataset):
     start_time = time.time()
 
     # Uncomment the following lines to enable parallel processing
-    # results = Parallel(n_jobs=-1)(
-    #     delayed(process_iteration)(X, y, n_neighbors, epsilon, uncertainty)
-    #     for _ in range(n_iterations)
-    # )
+    results = Parallel(n_jobs=-1)(
+        delayed(process_iteration)(X, y, n_neighbors, epsilon, uncertainty)
+        for _ in range(n_iterations)
+    )
 
     # Run the iterations sequentially
-    results = []
-    for _ in range(n_iterations):
-        result = process_iteration(X, y, n_neighbors, epsilon, uncertainty)
-        results.append(result)
+    # results = []
+    # for _ in range(n_iterations):
+    #     result = process_iteration(X, y, n_neighbors, epsilon, uncertainty)
+    #     results.append(result)
 
     end_time = time.time()
     print(f"Total parallel execution time: {end_time - start_time:.2f} seconds.")
@@ -156,6 +157,19 @@ def robustness(uncertainty, dataset):
     all_robustness = []
 
     for result in results:
+        idx = np.argsort(ep)
+        idx = idx[:int(len(X_test)*0.7)] 
+
+        uncertainties = uncertainties[idx]
+        ep = ep[idx]
+        X_test = X_test[idx]
+        y_pred = y_pred[idx]
+
+        # Fast Neighbors search
+        index = faiss.IndexFlatL2(X_train.shape[1]) 
+        index.add(X_train)
+        distances, indices = index.search(X_test, X_train.shape[0])
+        distances = np.sqrt(distances)
         all_uncertainties.extend(result[0])
         all_robustness.extend(result[1])
     corr, p_val = pearsonr(all_uncertainties, all_robustness)
@@ -164,9 +178,9 @@ def robustness(uncertainty, dataset):
     print(f"Overall p-value ({dataset}_{uncertainty}): {p_val:.4e}")
 
     # Save correlation coefficients and p-values
-    # os.makedirs(f"output/shap/{uncertainty}", exist_ok=True)
-    # corr = np.vstack((corr, p_val)).T
-    # np.savetxt(f"output/shap/{uncertainty}/correlation_{dataset.lower()}_{uncertainty}.csv", corr, delimiter=",", fmt='%s')
+    os.makedirs(f"output/shap/{uncertainty}", exist_ok=True)
+    corr = np.vstack((corr, p_val)).T
+    np.savetxt(f"output/shap/{uncertainty}/correlation_{dataset.lower()}_{uncertainty}.csv", corr, delimiter=",", fmt='%s')
     
     # Combine and sort by uncertainty
     all_results = []
@@ -187,5 +201,69 @@ def robustness(uncertainty, dataset):
             plt.close()
 
     # Save all results
-    # all_results = np.array(all_results)
-    # np.save(f"output/shap/{uncertainty}/data_{dataset.lower()}_{uncertainty}.npy", all_results)
+    all_results = np.array(all_results)
+    np.save(f"output/shap/{uncertainty}/data_{dataset.lower()}_{uncertainty}.npy", all_results)
+
+def robustness2(uncertainty, dataset):
+    X, y = dt.load_data(dataset)
+    
+    n_iterations = 5    # Number of iterations (increase for final experiments)
+    n_neighbors = 30     # Number of neighbors to generate per test instance
+    epsilon = sqrt(pow(0.1,2) * X.shape[1])        # Radius for generating neighbors
+    
+    print(f"sample size: {sqrt(X.shape[0]*0.7)*10}")
+
+    # Run iterations in parallel using all available CPU cores
+    start_time = time.time()
+
+    # Uncomment the following lines to enable parallel processing
+    results = Parallel(n_jobs=-1)(
+        delayed(process_iteration)(X, y, n_neighbors, epsilon, uncertainty, i)
+        for i in range(n_iterations)
+    )
+
+    end_time = time.time()
+    print(f"Total parallel execution time: {end_time - start_time:.2f} seconds.")
+
+    all_uncertainties = []
+    all_robustness = []
+
+    for result in results:
+        al, robust, ep, X_test = result
+        idx = np.argsort(ep)
+        idx = idx[:int(len(X_test)*0.7)] 
+        # print(idx)
+        all_uncertainties.extend(al[idx])
+        all_robustness.extend(robust[idx])
+    corr, p_val = pearsonr(all_uncertainties, all_robustness)
+    print("---SHAP robustness---")
+    print(f"Overall correlation coefficient ({dataset}_{uncertainty}): {corr:.4f}")
+    print(f"Overall p-value ({dataset}_{uncertainty}): {p_val:.4e}")
+
+    # Save correlation coefficients and p-values
+    os.makedirs(f"output/shap/{uncertainty}", exist_ok=True)
+    corr = np.vstack((corr, p_val)).T
+    np.savetxt(f"output/shap/{uncertainty}/correlation_{dataset.lower()}_{uncertainty}_2.csv", corr, delimiter=",", fmt='%s')
+    
+    # Combine and sort by uncertainty
+    all_results = []
+    for res in results:
+        temp = np.vstack((res[0], res[1])).T
+        # res_sorted = temp[np.argsort(temp[:, 0])]
+        res_sorted = temp
+        all_results.append(res_sorted)
+        if n_iterations == 1:
+            os.makedirs(f"figures/shap/{uncertainty}", exist_ok=True)
+            plt.figure()
+            plt.scatter(res_sorted[:, 0], res_sorted[:, 1], alpha=0.5, c='green')
+            plt.xlabel(f"Total Uncertainty", fontsize=18)
+            plt.ylabel("Un-Robustness", fontsize=18)
+            plt.xticks([])
+            plt.yticks([])
+            plt.tight_layout()
+            plt.savefig(f"figures/shap/{uncertainty}/{dataset.lower()}_{uncertainty}.png")
+            plt.close()
+
+    # Save all results
+    all_results = np.array(all_results)
+    np.save(f"output/shap/{uncertainty}/data_{dataset.lower()}_{uncertainty}_2.npy", all_results)

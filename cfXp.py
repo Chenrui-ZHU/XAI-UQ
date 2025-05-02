@@ -11,7 +11,7 @@ import uncertainties as unc
 import data as dt
 import os
 
-np.random.seed(42)
+# np.random.seed(0)
 
 def attaigability_test(dataset):
     # Load and standardize dataset
@@ -80,12 +80,6 @@ def robustness(uncertainty, dataset):
         model.fit(X_train, y_train)
         y_pred = model.predict(X_test)
 
-        # Fast Neighbors search
-        index = faiss.IndexFlatL2(X_train.shape[1]) 
-        index.add(X_train)
-        distances, indices = index.search(X_test, X_train.shape[0])
-        distances = np.sqrt(distances)
-        
         if uncertainty == "entropy":
             al, ep = unc.entropy_uncertainties(X_train, y_train, X_test)
             uncertainties = al
@@ -101,6 +95,20 @@ def robustness(uncertainty, dataset):
         if uncertainty == "deep_ensemble":
             al, ep = unc.deep_ensemble(X_train, y_train, X_test)
             uncertainties = al
+
+        # idx = np.argsort(ep)
+        # idx = idx[:int(len(X_test)*0.7)] 
+
+        # uncertainties = uncertainties[idx]
+        # ep = ep[idx]
+        # X_test = X_test[idx]
+        # y_pred = y_pred[idx]
+
+        # Fast Neighbors search
+        index = faiss.IndexFlatL2(X_train.shape[1]) 
+        index.add(X_train)
+        distances, indices = index.search(X_test, X_train.shape[0])
+        distances = np.sqrt(distances)
 
         # Find counterfactuals
         counterfactual_indices = []
