@@ -96,6 +96,7 @@ def robustness(uncertainty, dataset):
             al, ep = unc.deep_ensemble(X_train, y_train, X_test)
             uncertainties = al
 
+        # Just in case
         # idx = np.argsort(ep)
         # idx = idx[:int(len(X_test)*0.7)] 
 
