@@ -11,7 +11,7 @@ import uncertainties as unc
 import data as dt
 import os
 
-# np.random.seed(0)
+np.random.seed(42)
 
 def attaigability_test(dataset):
     # Load and standardize dataset
@@ -71,9 +71,9 @@ def robustness(uncertainty, dataset):
     global_uncertainties = []
     global_unrobustness = []
 
-    for _ in range(iterations):
+    for i in range(iterations):
         # Split data and train model
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3)
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=i)
 
         # Fit model
         model = KNeighborsClassifier(n_neighbors=7, weights="distance")
@@ -91,7 +91,7 @@ def robustness(uncertainty, dataset):
             uncertainties = al
         if uncertainty == "centroids":
             al, ep = unc.centroids_uncertainties(X_train, y_train, X_test)
-            uncertainties = al - ep
+            uncertainties = al
         if uncertainty == "deep_ensemble":
             al, ep = unc.deep_ensemble(X_train, y_train, X_test)
             uncertainties = al
@@ -126,9 +126,13 @@ def robustness(uncertainty, dataset):
     print(f"Average p-value ({dataset}_{uncertainty}): {p_val}")
 
     # Save results
-    # os.makedirs(f"output/cf/{uncertainty}", exist_ok=True)
+    # os.makedirs(f"output/cf/al/{uncertainty}", exist_ok=True)
     # corr = np.vstack((stat, p_val)).T
-    # np.savetxt(f"output/cf/{uncertainty}/correlation_{dataset.lower()}_{uncertainty}.csv", corr, delimiter=",", fmt='%s')
+    # np.savetxt(f"output/cf/al/{uncertainty}/correlation_{dataset.lower()}_{uncertainty}_0.3.csv", corr, delimiter=",", fmt='%s')
+
+    # os.makedirs(f"output/cf/al/{uncertainty}", exist_ok=True)
+    # corr = np.vstack((global_unrobustness, global_uncertainties)).T
+    # np.save(f"output/cf/al/{uncertainty}/correlation_{dataset.lower()}_{uncertainty}_0.3.npy", corr)
     
     if iterations == 1:
         os.makedirs(f"figures/cf/{uncertainty}", exist_ok=True)
