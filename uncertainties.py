@@ -1,5 +1,6 @@
 import numpy as np
 from scipy.stats import entropy
+from lib.deep_eknn import EKNN
 # import lib.likelihood as density
 from sklearn.neural_network import MLPClassifier
 from sklearn.exceptions import ConvergenceWarning
